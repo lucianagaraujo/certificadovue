@@ -66,12 +66,12 @@ onMounted(async () => {
     medalhaAluno.value = {
       id: data.id,
       data_conquista: data.data_conquista,
-      aluno_nome: data.aluno?.nome,
-      aluno_email: data.aluno?.email,
-      nome: data.medalhas?.nome,
-      descricao: data.medalhas?.descricao,
-      criterios: data.medalhas?.criterios,
-      imagem: data.medalhas?.imagem_url
+      aluno_nome: Array.isArray(data.aluno) ? (data.aluno[0] as any)?.nome : (data.aluno as any)?.nome,
+      aluno_email: Array.isArray(data.aluno) ? (data.aluno[0] as any)?.email : (data.aluno as any)?.email,
+      nome: Array.isArray(data.medalhas) ? (data.medalhas[0] as any)?.nome : (data.medalhas as any)?.nome,
+      descricao: Array.isArray(data.medalhas) ? (data.medalhas[0] as any)?.descricao : (data.medalhas as any)?.descricao,
+      criterios: Array.isArray(data.medalhas) ? (data.medalhas[0] as any)?.criterios : (data.medalhas as any)?.criterios,
+      imagem: Array.isArray(data.medalhas) ? (data.medalhas[0] as any)?.imagem_url : (data.medalhas as any)?.imagem_url
     }
   }
   carregando.value = false

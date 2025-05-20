@@ -28,7 +28,7 @@ export const useAuthStore = defineStore('auth', {
     async login(email: string, password: string) {
       try {
         // TODO: Implementar chamada à API
-        const response = { user: { id: 1, email, name: 'Admin', role: 'admin' }, token: 'fake-token' }
+        const response = { user: { id: 1, email, name: 'Admin', role: 'admin' as 'admin' | 'aluno' }, token: 'fake-token' }
         this.user = response.user
         this.token = response.token
         localStorage.setItem('token', response.token)

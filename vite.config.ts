@@ -9,11 +9,23 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
+  build: {
+    minify: 'terser',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['vue', 'vue-router', 'pinia'],
+          'ui': ['@headlessui/vue', '@heroicons/vue']
+        }
+      }
+    }
+  },
   server: {
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.VITE_API_URL || 'http://localhost:8080',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }

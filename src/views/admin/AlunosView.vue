@@ -125,7 +125,7 @@
                   <div>
                     <div class="font-semibold">{{ medalha.nome }}</div>
                     <div class="text-sm text-gray-600">{{ medalha.descricao }}</div>
-                    <div class="text-xs text-gray-500 mt-1"><b>Data:</b> {{ formatarData(medalha.data_conquista) }}</div>
+                    <div class="text-xs text-gray-500 mt-1"><b>Data:</b> {{ formatarData(medalha.data_conquista || '') }}</div>
                     <ul v-if="medalha.criterios" class="list-disc ml-5 mt-1 text-xs text-gray-500">
                       <li v-for="(c, idx) in medalha.criterios.split(';')" :key="idx">{{ c }}</li>
                     </ul>

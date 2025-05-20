@@ -110,7 +110,7 @@ const uploadAlunos = async () => {
   Papa.parse(selectedFile.value, {
     header: false,
     skipEmptyLines: true,
-    complete: async (results) => {
+    complete: async (results: any) => {
       const linhas = results.data.slice(1)
       const alunos = linhas
         .filter((a: any) => a[0] && a[1])
@@ -139,4 +139,8 @@ const logout = () => {
   authStore.logout()
   router.push('/login')
 }
-</script> 
+</script>
+
+@ts-ignore
+// eslint-disable-next-line
+// Declaração de tipos para papaparse 
