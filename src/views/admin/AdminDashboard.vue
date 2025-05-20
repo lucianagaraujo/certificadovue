@@ -139,7 +139,7 @@ const logout = () => {
   authStore.logout()
   router.push('/login')
 }
-</script>
+</script> 
 
 @ts-ignore
 // eslint-disable-next-line

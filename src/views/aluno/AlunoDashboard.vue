@@ -46,22 +46,71 @@
             <div
               v-for="medalha in medalhas"
               :key="medalha.id"
-              class="card-medalha"
+              class="bg-white rounded-lg shadow-md p-4 flex flex-col items-center cursor-pointer hover:shadow-lg transition"
+              @click="abrirModalMedalha(medalha)"
             >
-              <img :src="medalha.imagem" class="medalha-img" />
-              <div class="medalha-info">
-                <h3>{{ medalha.nome }}</h3>
-                <p>{{ medalha.descricao }}</p>
-                <p><b>Critérios:</b> {{ medalha.criterios }}</p>
-                <p><b>Data da conquista:</b> {{ formatarData(medalha.data_conquista) }}</p>
-                <p><b>Código:</b> {{ medalha.id }}</p>
-                <div class="my-2">
-                  <qrcode-vue :value="`${urlBase}/validar/${medalha.id}`" :size="100" />
-                  <p class="text-xs text-gray-500 mt-1">Escaneie para validar a medalha</p>
-                </div>
-                <div class="acoes">
-                  <button @click="baixarCertificado(medalha)">Baixar Certificado</button>
-                  <button @click="compartilharMedalha(medalha)">Compartilhar</button>
+              <img :src="medalha.imagem" class="w-32 h-32 object-contain mb-2" />
+              <h3 class="text-lg font-bold text-center">{{ medalha.nome }}</h3>
+            </div>
+          </div>
+        </div>
+        <!-- Modal de Detalhes da Medalha -->
+        <div v-if="modalAberto && medalhaSelecionada" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div class="absolute inset-0" @click="fecharModalMedalha"></div>
+          <div class="bg-white rounded-lg shadow-lg p-4 sm:p-8 max-w-lg w-full relative animate-fade-in my-20 sm:my-24 z-10 overflow-y-auto max-h-[90vh]">
+            <button @click="fecharModalMedalha" class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-xl z-20">&times;</button>
+            <div class="flex flex-col items-center">
+              <img :src="medalhaSelecionada.imagem" class="w-40 h-40 object-contain mb-4" />
+              <h3 class="text-2xl font-bold text-gray-800 mb-2">{{ medalhaSelecionada.nome }}</h3>
+              <p class="mb-2 text-center">{{ medalhaSelecionada.descricao }}</p>
+              <div class="mt-4 w-full">
+                <span class="block font-semibold mb-1">Critérios:</span>
+                <ul class="list-disc list-inside mb-4">
+                  <li v-for="criterio in medalhaSelecionada.criterios.split(';')" :key="criterio" class="mb-1">{{ criterio }}</li>
+                </ul>
+              </div>
+              <div class="mt-4 w-full">
+                <span class="block font-semibold">Data da conquista:</span>
+                <span class="ml-2">{{ formatarData(medalhaSelecionada.data_conquista) }}</span>
+              </div>
+              <div class="mt-2 w-full">
+                <span class="block font-semibold">Código:</span>
+                <span class="ml-2">{{ medalhaSelecionada.id }}</span>
+              </div>
+              <div class="my-4 flex flex-col items-center">
+                <qrcode-vue :value="`${urlBase}/validar/${medalhaSelecionada.id}`" :size="100" />
+                <p class="text-xs text-gray-500 mt-1">Escaneie para validar a medalha</p>
+              </div>
+              <div class="acoes flex gap-2 mt-4">
+                <button
+                  @click="baixarCertificado(medalhaSelecionada)"
+                  class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition"
+                >
+                  <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 4v12' /></svg>
+                  Baixar Certificado
+                </button>
+                <div class="relative group">
+                  <button
+                    @click="abrirOpcoesCompartilhar(medalhaSelecionada)"
+                    class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded shadow hover:bg-green-700 transition"
+                  >
+                    <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 8a3 3 0 00-6 0v1a3 3 0 006 0V8zm-6 4v1a3 3 0 006 0v-1m-6 4v1a3 3 0 006 0v-1' /></svg>
+                    Compartilhar
+                  </button>
+                  <div v-if="medalhaCompartilhar && medalhaCompartilhar.id === medalhaSelecionada.id" class="absolute bottom-full mb-2 right-0 bg-white border rounded shadow p-2 flex flex-col min-w-[180px] z-20">
+                    <button @click="compartilharWhatsapp(medalhaSelecionada)" class="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded">
+                      <img src='https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/whatsapp.svg' class='h-5 w-5' /> WhatsApp
+                    </button>
+                    <button @click="compartilharFacebook(medalhaSelecionada)" class="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded">
+                      <img src='https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/facebook.svg' class='h-5 w-5' /> Facebook
+                    </button>
+                    <button @click="compartilharLinkedin(medalhaSelecionada)" class="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded">
+                      <img src='https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/linkedin.svg' class='h-5 w-5' /> LinkedIn
+                    </button>
+                    <button @click="copiarLink(medalhaSelecionada)" class="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded">
+                      <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13.828 10.172a4 4 0 010 5.656m-1.414-1.414a2 2 0 010-2.828m-2.828 2.828a4 4 0 010-5.656m1.414 1.414a2 2 0 010 2.828' /></svg> Copiar Link
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -78,6 +127,9 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/services/supabase'
 import QrcodeVue from 'qrcode.vue'
+import JSZip from 'jszip'
+import { saveAs } from 'file-saver'
+import QRCode from 'qrcode'
 
 interface Medalha {
   id: number
@@ -98,6 +150,9 @@ const aluno = ref({
 })
 
 const medalhas = ref<Medalha[]>([])
+const medalhaCompartilhar = ref<Medalha | null>(null)
+const modalAberto = ref(false)
+const medalhaSelecionada = ref<Medalha | null>(null)
 
 const urlBase = typeof window !== 'undefined' ? window.location.origin : ''
 
@@ -109,14 +164,49 @@ const userInitials = computed(() => {
     .toUpperCase()
 })
 
-const baixarCertificado = (medalha: Medalha) => {
-  // TODO: Implementar download do certificado
-  console.log('Baixando certificado:', medalha.nome)
+const baixarCertificado = async (medalha: Medalha) => {
+  // Baixar imagem da medalha
+  const response = await fetch(medalha.imagem)
+  const medalhaBlob = await response.blob()
+
+  // Gerar PNG do QR Code usando a biblioteca qrcode
+  const qrUrl = await QRCode.toDataURL(`${urlBase}/validar/${medalha.id}`, { width: 300 })
+  const qrBlob = await (await fetch(qrUrl)).blob()
+
+  // Criar ZIP
+  const zip = new JSZip()
+  zip.file(`medalha-${medalha.nome}.png`, medalhaBlob)
+  zip.file(`qrcode-${medalha.nome}.png`, qrBlob)
+  const zipBlob = await zip.generateAsync({ type: 'blob' })
+  saveAs(zipBlob, `certificado-${medalha.nome}.zip`)
 }
 
-const compartilharMedalha = (medalha: Medalha) => {
-  // TODO: Implementar compartilhamento
-  console.log('Compartilhando medalha:', medalha.nome)
+const abrirOpcoesCompartilhar = (medalha: Medalha) => {
+  medalhaCompartilhar.value = medalhaCompartilhar.value && medalhaCompartilhar.value.id === medalha.id ? null : medalha
+}
+
+const compartilharWhatsapp = (medalha: Medalha) => {
+  const url = `${urlBase}/validar/${medalha.id}`
+  const texto = encodeURIComponent(`Compartilho minha nova conquista: ${medalha.nome}! Veja e valide: ${url}`)
+  window.open(`https://wa.me/?text=${texto}`, '_blank')
+}
+
+const compartilharFacebook = (medalha: Medalha) => {
+  const url = `${urlBase}/validar/${medalha.id}`
+  const texto = encodeURIComponent(`Compartilho minha nova conquista: ${medalha.nome}! Veja e valide: ${url}\n${url}`)
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${texto}`, '_blank')
+}
+
+const compartilharLinkedin = (medalha: Medalha) => {
+  const url = `${urlBase}/validar/${medalha.id}`
+  const texto = encodeURIComponent(`Compartilho minha nova conquista: ${medalha.nome}! Veja e valide: ${url}\n${url}`)
+  window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&summary=${texto}`,'_blank')
+}
+
+const copiarLink = (medalha: Medalha) => {
+  const url = `${urlBase}/validar/${medalha.id}`
+  navigator.clipboard.writeText(url)
+  alert('Link copiado!')
 }
 
 const logout = () => {
@@ -127,6 +217,16 @@ const logout = () => {
 const formatarData = (data: string) => {
   if (!data) return ''
   return new Date(data).toLocaleDateString('pt-BR')
+}
+
+const abrirModalMedalha = (medalha: Medalha) => {
+  medalhaSelecionada.value = medalha
+  modalAberto.value = true
+}
+
+const fecharModalMedalha = () => {
+  modalAberto.value = false
+  medalhaCompartilhar.value = null
 }
 
 onMounted(async () => {
