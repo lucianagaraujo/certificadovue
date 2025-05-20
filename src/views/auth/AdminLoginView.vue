@@ -1,7 +1,10 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-100">
     <div class="bg-white p-8 rounded shadow max-w-md w-full">
-      <h2 class="text-2xl font-bold mb-4 text-center">Login do Administrador</h2>
+      <div class="flex flex-col items-center">
+        <img src="@/assets/logoippla.png" alt="Logo" class="h-20 mb-4 drop-shadow mx-auto" />
+        <h2 class="text-2xl font-bold mb-4 text-center">Login do Administrador</h2>
+      </div>
       <form @submit.prevent="handleLogin">
         <input v-model="email" type="email" placeholder="Email" class="w-full mb-2 p-2 border rounded" required />
         <input v-model="password" type="password" placeholder="Senha" class="w-full mb-4 p-2 border rounded" required />

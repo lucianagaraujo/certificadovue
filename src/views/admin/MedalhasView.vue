@@ -122,6 +122,35 @@
             </div>
           </div>
         </div>
+
+        <!-- Modal de Edição de Medalha -->
+        <div v-if="modalEditarAberto" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div class="absolute inset-0" @click="fecharModalEditar"></div>
+          <div class="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full relative animate-fade-in my-12 z-10">
+            <button @click="fecharModalEditar" class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-xl z-20">&times;</button>
+            <h2 class="text-xl font-bold mb-4 text-center">Editar Medalha</h2>
+            <form @submit.prevent="salvarEdicaoMedalha" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Nome da Medalha</label>
+                <input v-model="medalhaEditando.nome" type="text" required class="input-field w-full" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Descrição</label>
+                <textarea v-model="medalhaEditando.descricao" rows="3" required class="input-field w-full"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Critérios (um por linha)</label>
+                <textarea v-model="criteriosEdicao" rows="3" required class="input-field w-full"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">URL da Imagem da Medalha</label>
+                <input v-model="medalhaEditando.imagem_url" type="text" class="input-field w-full" />
+                <img v-if="medalhaEditando.imagem_url" :src="medalhaEditando.imagem_url" class="mt-2 h-32 w-32 object-cover rounded-lg" />
+              </div>
+              <button type="submit" class="btn-primary w-full">Salvar Alterações</button>
+            </form>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -199,9 +228,46 @@ onMounted(() => {
   fetchMedalhas()
 })
 
+const modalEditarAberto = ref(false)
+const medalhaEditando = ref<Medalha | null>(null)
+const criteriosEdicao = ref('')
+
 const editarMedalha = (medalha: Medalha) => {
-  // TODO: Implementar edição da medalha
-  console.log('Editando medalha:', medalha)
+  medalhaEditando.value = { ...medalha }
+  criteriosEdicao.value = medalha.criterios.split(';').join('\n')
+  modalEditarAberto.value = true
+}
+
+const fecharModalEditar = () => {
+  modalEditarAberto.value = false
+  medalhaEditando.value = null
+  criteriosEdicao.value = ''
+}
+
+const salvarEdicaoMedalha = async () => {
+  if (!medalhaEditando.value) return
+  loading.value = true
+  try {
+    const criteriosStr = criteriosEdicao.value.split('\n').map(c => c.trim()).filter(Boolean).join(';')
+    const { error } = await supabase
+      .from('medalhas')
+      .update({
+        nome: medalhaEditando.value.nome,
+        descricao: medalhaEditando.value.descricao,
+        criterios: criteriosStr,
+        imagem_url: medalhaEditando.value.imagem_url
+      })
+      .eq('id', medalhaEditando.value.id)
+    if (error) {
+      alert('Erro ao atualizar medalha: ' + error.message)
+    } else {
+      alert('Medalha atualizada com sucesso!')
+      fetchMedalhas()
+      fecharModalEditar()
+    }
+  } finally {
+    loading.value = false
+  }
 }
 
 const excluirMedalha = async (id: string) => {

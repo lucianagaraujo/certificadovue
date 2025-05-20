@@ -1,57 +1,39 @@
 <template>
-  <div class="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-    <div class="sm:mx-auto sm:w-full sm:max-w-md">
-      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-        Entre no Sistema
-      </h2>
-    </div>
-
-    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-      <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-        <form class="space-y-6" @submit.prevent="handleLogin">
-          <div>
-            <label for="email" class="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <div class="mt-1">
-              <input
-                id="email"
-                v-model="email"
-                name="email"
-                type="email"
-                required
-                class="input-field"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label for="password" class="block text-sm font-medium text-gray-700">
-              Senha
-            </label>
-            <div class="mt-1">
-              <input
-                id="password"
-                v-model="password"
-                name="password"
-                type="password"
-                required
-                class="input-field"
-              />
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              class="w-full btn-primary"
-              :disabled="loading"
-            >
-              {{ loading ? 'Entrando...' : 'Entrar' }}
-            </button>
-          </div>
-        </form>
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
+    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-gray-200 flex flex-col items-center">
+      <div class="flex flex-col items-center w-full">
+        <img src="@/assets/logoippla.png" alt="Logo" class="h-20 mb-4 drop-shadow mx-auto" />
+        <h1 class="text-2xl font-bold text-blue-700 mb-2 text-center">Bem-vindo!</h1>
+        <p class="text-gray-600 mb-6 text-center">Acesse sua conta para visualizar e compartilhar suas conquistas.</p>
+        <h2 class="text-xl font-semibold mb-4 text-center text-gray-800">Login do Aluno</h2>
       </div>
+      <form class="w-full flex flex-col gap-3" @submit.prevent="handleLogin">
+        <input
+          id="email"
+          v-model="email"
+          name="email"
+          type="email"
+          required
+          placeholder="Email"
+          class="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+        />
+        <input
+          id="password"
+          v-model="password"
+          name="password"
+          type="password"
+          required
+          placeholder="Senha"
+          class="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+        />
+        <button
+          type="submit"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded font-semibold shadow transition disabled:opacity-60"
+          :disabled="loading"
+        >
+          {{ loading ? 'Entrando...' : 'Entrar' }}
+        </button>
+      </form>
     </div>
   </div>
 </template>
