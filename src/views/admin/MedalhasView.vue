@@ -124,7 +124,7 @@
         </div>
 
         <!-- Modal de Edição de Medalha -->
-        <div v-if="modalEditarAberto" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+        <div v-if="modalEditarAberto && medalhaEditando" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div class="absolute inset-0" @click="fecharModalEditar"></div>
           <div class="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full relative animate-fade-in my-12 z-10">
             <button @click="fecharModalEditar" class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-xl z-20">&times;</button>
@@ -132,11 +132,11 @@
             <form @submit.prevent="salvarEdicaoMedalha" class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700">Nome da Medalha</label>
-                <input v-model="medalhaEditando.nome" type="text" required class="input-field w-full" />
+                <input v-model="medalhaEditando!.nome" type="text" required class="input-field w-full" />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Descrição</label>
-                <textarea v-model="medalhaEditando.descricao" rows="3" required class="input-field w-full"></textarea>
+                <textarea v-model="medalhaEditando!.descricao" rows="3" required class="input-field w-full"></textarea>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">Critérios (um por linha)</label>
@@ -144,8 +144,8 @@
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700">URL da Imagem da Medalha</label>
-                <input v-model="medalhaEditando.imagem_url" type="text" class="input-field w-full" />
-                <img v-if="medalhaEditando.imagem_url" :src="medalhaEditando.imagem_url" class="mt-2 h-32 w-32 object-cover rounded-lg" />
+                <input v-model="medalhaEditando!.imagem_url" type="text" class="input-field w-full" />
+                <img v-if="medalhaEditando!.imagem_url" :src="medalhaEditando!.imagem_url" class="mt-2 h-32 w-32 object-cover rounded-lg" />
               </div>
               <button type="submit" class="btn-primary w-full">Salvar Alterações</button>
             </form>
