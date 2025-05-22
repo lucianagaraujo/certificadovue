@@ -37,7 +37,17 @@
                 class="input-field"
               />
             </div>
-
+            <div>
+              <label class="block text-sm font-medium text-gray-700">
+                Curso
+              </label>
+              <input
+                v-model="novaMedalha.curso"
+                type="text"
+                required
+                class="input-field"
+              />
+            </div>
             <div>
               <label class="block text-sm font-medium text-gray-700">
                 Descrição
@@ -158,7 +168,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { supabase } from '@/services/supabase'
+import { getMedalhas, createMedalha, deleteMedalha } from '@/services/database'
 
 interface Medalha {
   id: string
@@ -170,6 +180,7 @@ interface Medalha {
 
 const novaMedalha = ref({
   nome: '',
+  curso: '',
   descricao: '',
   criterios: '',
   imagem_url: ''
@@ -200,28 +211,18 @@ const criarMedalha = async () => {
       return
     }
     novaMedalha.value.criterios = criterios.value.join(';')
-    const { data, error } = await supabase
-      .from('medalhas')
-      .insert([{ ...novaMedalha.value }])
-      .select()
-    if (error) {
-      alert('Erro ao criar medalha: ' + error.message)
-    } else {
-      alert('Medalha criada com sucesso!')
-      fetchMedalhas()
-      novaMedalha.value = { nome: '', descricao: '', criterios: '', imagem_url: '' }
-      criterios.value = []
-    }
+    await createMedalha({ ...novaMedalha.value })
+    alert('Medalha criada com sucesso!')
+    fetchMedalhas()
+    novaMedalha.value = { nome: '', curso: '', descricao: '', criterios: '', imagem_url: '' }
+    criterios.value = []
   } finally {
     loading.value = false
   }
 }
 
 const fetchMedalhas = async () => {
-  const { data, error } = await supabase.from('medalhas').select('*').order('nome')
-  if (!error && data) {
-    medalhas.value = data
-  }
+  medalhas.value = await getMedalhas()
 }
 
 onMounted(() => {
@@ -241,7 +242,6 @@ const editarMedalha = (medalha: Medalha) => {
 const fecharModalEditar = () => {
   modalEditarAberto.value = false
   medalhaEditando.value = null
-  criteriosEdicao.value = ''
 }
 
 const salvarEdicaoMedalha = async () => {
@@ -249,30 +249,22 @@ const salvarEdicaoMedalha = async () => {
   loading.value = true
   try {
     const criteriosStr = criteriosEdicao.value.split('\n').map(c => c.trim()).filter(Boolean).join(';')
-    const { error } = await supabase
-      .from('medalhas')
-      .update({
-        nome: medalhaEditando.value.nome,
-        descricao: medalhaEditando.value.descricao,
-        criterios: criteriosStr,
-        imagem_url: medalhaEditando.value.imagem_url
-      })
-      .eq('id', medalhaEditando.value.id)
-    if (error) {
-      alert('Erro ao atualizar medalha: ' + error.message)
-    } else {
-      alert('Medalha atualizada com sucesso!')
-      fetchMedalhas()
-      fecharModalEditar()
-    }
+    await createMedalha({
+      nome: medalhaEditando.value.nome,
+      descricao: medalhaEditando.value.descricao,
+      criterios: criteriosStr,
+      imagem_url: medalhaEditando.value.imagem_url
+    })
+    alert('Medalha atualizada com sucesso!')
+    fetchMedalhas()
+    fecharModalEditar()
   } finally {
     loading.value = false
   }
 }
 
 const excluirMedalha = async (id: string) => {
-  if (!confirm('Tem certeza que deseja excluir esta medalha?')) return
-  const { error } = await supabase.from('medalhas').delete().eq('id', id)
-  if (!error) fetchMedalhas()
+  await deleteMedalha(id)
+  fetchMedalhas()
 }
 </script> 

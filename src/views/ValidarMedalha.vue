@@ -31,7 +31,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { supabase } from '@/services/supabase'
+import { getFirestore, doc, getDoc } from 'firebase/firestore'
 
 const route = useRoute()
 const carregando = ref(true)
@@ -55,25 +55,39 @@ onMounted(async () => {
     carregando.value = false
     return
   }
-  const { data, error } = await supabase
-    .from('alunos_medalhas')
-    .select('id, data_conquista, aluno:users(nome, email), medalhas(id, nome, descricao, criterios, imagem_url)')
-    .eq('id', id)
-    .single()
-  if (error || !data) {
-    erro.value = 'Medalha não encontrada ou código inválido.'
-  } else {
-    medalhaAluno.value = {
-      id: data.id,
-      data_conquista: data.data_conquista,
-      aluno_nome: Array.isArray(data.aluno) ? (data.aluno[0] as any)?.nome : (data.aluno as any)?.nome,
-      aluno_email: Array.isArray(data.aluno) ? (data.aluno[0] as any)?.email : (data.aluno as any)?.email,
-      nome: Array.isArray(data.medalhas) ? (data.medalhas[0] as any)?.nome : (data.medalhas as any)?.nome,
-      descricao: Array.isArray(data.medalhas) ? (data.medalhas[0] as any)?.descricao : (data.medalhas as any)?.descricao,
-      criterios: Array.isArray(data.medalhas) ? (data.medalhas[0] as any)?.criterios : (data.medalhas as any)?.criterios,
-      imagem: Array.isArray(data.medalhas) ? (data.medalhas[0] as any)?.imagem_url : (data.medalhas as any)?.imagem_url
-    }
+  const db = getFirestore();
+  // Buscar o vínculo em alunos_medalhas
+  const vinculoRef = doc(db, 'alunos_medalhas', String(id));
+  const vinculoSnap = await getDoc(vinculoRef);
+  if (!vinculoSnap.exists()) {
+    erro.value = 'Medalha não encontrada ou código inválido.';
+    carregando.value = false;
+    return;
   }
-  carregando.value = false
+  const vinculo = vinculoSnap.data();
+  // Buscar o aluno
+  const alunoRef = doc(db, 'users', vinculo.aluno_id);
+  const alunoSnap = await getDoc(alunoRef);
+  // Buscar a medalha
+  const medalhaRef = doc(db, 'medalhas', vinculo.medalha_id);
+  const medalhaSnap = await getDoc(medalhaRef);
+  if (!alunoSnap.exists() || !medalhaSnap.exists()) {
+    erro.value = 'Dados do aluno ou medalha não encontrados.';
+    carregando.value = false;
+    return;
+  }
+  const aluno = alunoSnap.data();
+  const medalha = medalhaSnap.data();
+  medalhaAluno.value = {
+    id: vinculoSnap.id,
+    data_conquista: vinculo.data_conquista || vinculo.data_vincular,
+    aluno_nome: aluno.nome,
+    aluno_email: aluno.email,
+    nome: medalha.nome,
+    descricao: medalha.descricao,
+    criterios: medalha.criterios,
+    imagem: medalha.imagem_url
+  };
+  carregando.value = false;
 })
 </script> 

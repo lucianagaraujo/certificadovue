@@ -25,12 +25,12 @@
       <div>
         <label class="block text-sm font-medium text-gray-700">URL da Imagem da Medalha</label>
         <input
-          v-model="medalData.imagem_url"
-          type="text"
-          placeholder="https://exemplo.com/imagem.png"
+          type="file"
+          @change="handleImageChange"
+          accept="image/*"
           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
         />
-        <img v-if="medalData.imagem_url" :src="medalData.imagem_url" class="mt-2 h-32 w-32 object-cover rounded-lg" />
+        <img v-if="imageFile || medalData.imagem_url" :src="imageFile ? URL.createObjectURL(imageFile) : medalData.imagem_url" class="mt-2 h-32 w-32 object-cover rounded-lg" />
       </div>
 
       <div>
@@ -82,7 +82,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { supabase } from '@/services/supabase';
+import { createMedalha } from '@/services/database';
+import { uploadImage } from '@/services/storage';
 
 const router = useRouter();
 
@@ -93,39 +94,42 @@ const medalData = ref({
   points: 0,
   category: 'academic',
   expirationDate: '',
+  criterios: [],
   created_at: new Date().toISOString(),
   active: true
 });
 
+const imageFile = ref<File | null>(null);
+
+const handleImageChange = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  if (target.files && target.files[0]) {
+    imageFile.value = target.files[0];
+  }
+};
+
 const handleSubmit = async () => {
   try {
-    if (!medalData.value.imagem_url) {
-      alert('Por favor, informe a URL da imagem da medalha');
+    let imageUrl = medalData.value.imagem_url;
+    if (imageFile.value) {
+      imageUrl = await uploadImage(imageFile.value, 'medalhas');
+    }
+    if (!imageUrl) {
+      alert('Por favor, envie uma imagem da medalha');
       return;
     }
-
-    const { data, error } = await supabase
-      .from('medals')
-      .insert([{
-        ...medalData.value
-      }])
-      .select();
-
-    if (error) throw error;
-
+    await createMedalha({
+      ...medalData.value,
+      imagem_url: imageUrl,
+      created_at: new Date(),
+      criterios: Array.isArray(medalData.value.criterios) ? medalData.value.criterios : [],
+      points: Number(medalData.value.points)
+    });
     alert('Medalha criada com sucesso!');
-    router.push('/admin/medals');
+    router.push('/admin/medalhas');
   } catch (error) {
     console.error('Erro ao criar medalha:', error);
     alert('Erro ao criar medalha. Por favor, tente novamente.');
   }
 };
-
-const testConnection = async () => {
-  const { data, error } = await supabase.from('users').insert([
-    { email: 'aluno@email.com', nome: 'Nome do Aluno', role: 'aluno' }
-  ]).select();
-  console.log('TESTE SUPABASE:', { data, error });
-};
-testConnection();
 </script> 

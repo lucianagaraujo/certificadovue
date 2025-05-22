@@ -47,6 +47,21 @@
               </button>
             </div>
           </div>
+          <!-- Cadastro Manual de Aluno -->
+          <div class="card bg-white rounded-xl shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Cadastro de Aluno</h2>
+            <form @submit.prevent="cadastrarAluno" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Nome do Aluno</label>
+                <input v-model="novoAluno.nome" type="text" required class="input-field" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">E-mail do Aluno</label>
+                <input v-model="novoAluno.email" type="email" required class="input-field" />
+              </div>
+              <button type="submit" class="btn-primary">Cadastrar Aluno</button>
+            </form>
+          </div>
 
           <!-- Gerenciar Medalhas -->
           <div class="card bg-white rounded-xl shadow p-6">
@@ -90,12 +105,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { supabase } from '@/services/supabase'
 import Papa from 'papaparse'
+import { importarAlunos } from '@/services/database'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const selectedFile = ref<File | null>(null)
+const novoAluno = ref({ nome: '', email: '' })
 
 const handleFileUpload = (event: Event) => {
   const target = event.target as HTMLInputElement
@@ -125,14 +141,25 @@ const uploadAlunos = async () => {
         return
       }
 
-      const { data, error } = await supabase.from('users').insert(alunos)
-      if (error) {
-        alert('Erro ao importar alunos: ' + error.message)
-      } else {
+      try {
+        await importarAlunos(alunos)
         alert('Alunos importados com sucesso!')
+      } catch (error: any) {
+        alert('Erro ao importar alunos: ' + (error.message || error))
       }
     }
   })
+}
+
+const cadastrarAluno = async () => {
+  if (!novoAluno.value.nome || !novoAluno.value.email) return
+  try {
+    await importarAlunos([{ nome: novoAluno.value.nome, email: novoAluno.value.email, role: 'aluno' }])
+    alert('Aluno cadastrado com sucesso!')
+    novoAluno.value = { nome: '', email: '' }
+  } catch (error: any) {
+    alert('Erro ao cadastrar aluno: ' + (error.message || error))
+  }
 }
 
 const logout = () => {
@@ -144,3 +171,5 @@ const logout = () => {
 @ts-ignore
 // eslint-disable-next-line
 // Declaração de tipos para papaparse 
+
+console.log('Medalhas encontradas:', medalhasAluno); 

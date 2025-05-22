@@ -142,10 +142,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { supabase } from '@/services/supabase'
+import { getUsers, getMedalhasAluno, getConquistasAluno } from '@/services/database'
 
 interface Medalha {
-  id: number
+  id: string
   nome: string
   descricao?: string
   criterios?: string
@@ -154,7 +154,7 @@ interface Medalha {
 }
 
 interface Aluno {
-  id: number
+  id: string
   nome: string
   email: string
   medalhas: Medalha[]
@@ -170,22 +170,21 @@ const filteredAlunos = computed(() => alunos.value)
 
 const buscarAlunos = async () => {
   carregando.value = true
-  let query = supabase.from('users').select('id, nome, email').eq('role', 'aluno')
+  let lista = await getUsers('aluno')
   if (searchQuery.value.trim()) {
+    const termo = searchQuery.value.trim().toLowerCase()
     if (tipoBusca.value === 'nome') {
-      query = query.ilike('nome', `%${searchQuery.value.trim()}%`)
+      lista = lista.filter(a => a.nome.toLowerCase().includes(termo))
     } else if (tipoBusca.value === 'email') {
-      query = query.ilike('email', `%${searchQuery.value.trim()}%`)
+      lista = lista.filter(a => a.email.toLowerCase().includes(termo))
     } else {
-      query = query.or(`nome.ilike.%${searchQuery.value.trim()}%,email.ilike.%${searchQuery.value.trim()}%`)
+      lista = lista.filter(a => a.nome.toLowerCase().includes(termo) || a.email.toLowerCase().includes(termo))
     }
   }
-  const { data, error } = await query.order('nome')
-  if (!error && data) {
-    alunos.value = data.map((a: any) => ({ ...a, medalhas: [] }))
-  } else {
-    alunos.value = []
-  }
+  alunos.value = await Promise.all(lista.map(async (a: any) => ({
+    ...a,
+    medalhas: await getMedalhasAluno(a.id)
+  })))
   carregando.value = false
 }
 
@@ -193,16 +192,11 @@ const exibirTodos = async () => {
   if (!mostrandoTodos.value) {
     searchQuery.value = ''
     carregando.value = true
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, nome, email')
-      .eq('role', 'aluno')
-      .order('nome')
-    if (!error && data) {
-      alunos.value = data.map((a: any) => ({ ...a, medalhas: [] }))
-    } else {
-      alunos.value = []
-    }
+    const lista = await getUsers('aluno')
+    alunos.value = await Promise.all(lista.map(async (a: any) => ({
+      ...a,
+      medalhas: await getMedalhasAluno(a.id)
+    })))
     carregando.value = false
     mostrandoTodos.value = true
   } else {
@@ -216,7 +210,7 @@ const editarAluno = (aluno: Aluno) => {
   console.log('Editando aluno:', aluno)
 }
 
-const excluirAluno = async (id: number) => {
+const excluirAluno = async (id: string) => {
   if (!confirm('Tem certeza que deseja excluir este aluno?')) return
   
   // TODO: Implementar exclusão do aluno
@@ -238,23 +232,9 @@ const abrirModalConquistas = async (aluno: Aluno) => {
   alunoSelecionado.value = aluno
   showModal.value = true
   loadingConquistas.value = true
-  // Buscar conquistas do aluno no Supabase
-  const { data, error } = await supabase
-    .from('alunos_medalhas')
-    .select('data_conquista, medalhas(id, nome, descricao, criterios, imagem_url)')
-    .eq('aluno_id', aluno.id)
-  if (!error && data) {
-    conquistas.value = data.map((item: any) => ({
-      id: item.medalhas.id,
-      nome: item.medalhas.nome,
-      descricao: item.medalhas.descricao,
-      criterios: item.medalhas.criterios,
-      imagem_url: item.medalhas.imagem_url,
-      data_conquista: item.data_conquista
-    }))
-  } else {
-    conquistas.value = []
-  }
+  // Buscar conquistas do aluno no Firestore (dados completos da medalha)
+  const conquistasAluno = await getConquistasAluno(aluno.id)
+  conquistas.value = conquistasAluno
   loadingConquistas.value = false
 }
 

@@ -21,7 +21,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '../../services/supabase'
+import { signIn, signOut } from '@/services/auth'
 
 const router = useRouter()
 const email = ref('')
@@ -33,25 +33,13 @@ async function handleLogin() {
   try {
     loading.value = true
     error.value = ''
-    const { data, error: authError } = await supabase.auth.signInWithPassword({
-      email: email.value,
-      password: password.value
-    })
-    if (authError) throw authError
-    if (data.session && data.user) {
-      // Buscar o papel do usuário na tabela users
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, email, role')
-        .eq('id', data.user.id)
-        .single()
-      if (userError) throw userError
-      if (!userData || userData.role !== 'admin') {
-        await supabase.auth.signOut()
-        throw new Error('Acesso restrito ao administrador.')
-      }
-      router.push('/home')
+    const { user, error: authError } = await signIn(email.value, password.value)
+    if (authError || !user) throw new Error('Usuário ou senha inválidos')
+    if (user.role !== 'admin') {
+      await signOut()
+      throw new Error('Acesso restrito ao administrador.')
     }
+    router.push('/home')
   } catch (e: any) {
     error.value = e.message || 'Erro ao fazer login'
   } finally {

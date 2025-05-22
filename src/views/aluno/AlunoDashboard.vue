@@ -1,17 +1,21 @@
 <template>
   <div class="min-h-screen bg-gray-100">
     <nav class="bg-white shadow">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
         <div class="flex justify-between h-16">
           <div class="flex">
-            <div class="flex-shrink-0 flex items-center">
-              <h1 class="text-xl font-bold">Minhas Medalhas</h1>
+            <div class="items-center">
+              <h2 class="text-xl font-semibold">{{ aluno.nome }}</h2>
+              <p class="text-gray-600">{{ aluno.email }}</p>
             </div>
           </div>
+          <div class="text-right">
+              
+            </div>
           <div class="flex items-center">
             <button
               @click="logout"
-              class="ml-4 btn-primary"
+              class="ml-4 bg-gradient-to-br from-[#0159ce] to-[#00134c] text-white px-4 py-2 rounded-lg"
             >
               Sair
             </button>
@@ -24,19 +28,7 @@
       <div class="px-4 py-6 sm:px-0">
         <!-- Perfil do Aluno -->
         <div class="card mb-6">
-          <div class="flex items-center space-x-4">
-            <div class="flex-shrink-0">
-              <div class="h-16 w-16 rounded-full bg-primary-100 flex items-center justify-center">
-                <span class="text-2xl text-primary-600">
-                  {{ userInitials }}
-                </span>
-              </div>
-            </div>
-            <div>
-              <h2 class="text-xl font-semibold">{{ aluno.nome }}</h2>
-              <p class="text-gray-600">{{ aluno.email }}</p>
-            </div>
-          </div>
+          <Certificado :nome="aluno.nome" :email="aluno.email" />
         </div>
 
         <!-- Medalhas Conquistadas -->
@@ -46,10 +38,10 @@
             <div
               v-for="medalha in medalhas"
               :key="medalha.id"
-              class="bg-white rounded-lg shadow-md p-4 flex flex-col items-center cursor-pointer hover:shadow-lg transition"
+              class="bg-gradient-to-br from-[#ffffff] to-[#c4cfd7] rounded-3xl shadow-md p-4 flex flex-col items-center cursor-pointer hover:shadow-2xl transition"
               @click="abrirModalMedalha(medalha)"
             >
-              <img :src="medalha.imagem" class="w-32 h-32 object-contain mb-2" />
+              <img :src="medalha.imagem_url" class="w-32 h-32 object-contain mb-2" />
               <h3 class="text-lg font-bold text-center">{{ medalha.nome }}</h3>
             </div>
           </div>
@@ -60,7 +52,7 @@
           <div class="bg-white rounded-lg shadow-lg p-4 sm:p-8 max-w-lg w-full relative animate-fade-in my-20 sm:my-24 z-10 overflow-y-auto max-h-[90vh]">
             <button @click="fecharModalMedalha" class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-xl z-20">&times;</button>
             <div class="flex flex-col items-center">
-              <img :src="medalhaSelecionada.imagem" class="w-40 h-40 object-contain mb-4" />
+              <img :src="medalhaSelecionada.imagem_url" class="w-40 h-40 object-contain mb-4" />
               <h3 class="text-2xl font-bold text-gray-800 mb-2">{{ medalhaSelecionada.nome }}</h3>
               <p class="mb-2 text-center">{{ medalhaSelecionada.descricao }}</p>
               <div class="mt-4 w-full">
@@ -125,28 +117,29 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { supabase } from '@/services/supabase'
+import { getConquistasAluno } from '@/services/database'
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'
 import QrcodeVue from 'qrcode.vue'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
 import QRCode from 'qrcode'
+import Certificado from '@/components/Certificado.vue'
 
 interface Medalha {
-  id: number
+  id: string
   nome: string
   descricao: string
   criterios: string
-  imagem: string
+  imagem_url: string
   data_conquista: string
-  codigo_validacao?: string
 }
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 const aluno = ref({
-  nome: 'Nome do Aluno',
-  email: 'aluno@email.com'
+  nome: '',
+  email: ''
 })
 
 const medalhas = ref<Medalha[]>([])
@@ -164,9 +157,30 @@ const userInitials = computed(() => {
     .toUpperCase()
 })
 
+const fetchAlunoEMedalhas = async () => {
+  if (!authStore.user) return
+  aluno.value = {
+    nome: authStore.user.name,
+    email: authStore.user.email
+  }
+  const db = getFirestore();
+  const usersRef = collection(db, 'users');
+  const q = query(usersRef, where('email', '==', authStore.user.email));
+  const querySnapshot = await getDocs(q);
+  if (querySnapshot.empty) {
+    console.log('Usuário não encontrado na coleção users');
+    medalhas.value = [];
+    return;
+  }
+  const userDoc = querySnapshot.docs[0];
+  const userId = userDoc.id;
+  medalhas.value = await getConquistasAluno(userId);
+  console.log('Medalhas retornadas:', medalhas.value)
+}
+
 const baixarCertificado = async (medalha: Medalha) => {
   // Baixar imagem da medalha
-  const response = await fetch(medalha.imagem)
+  const response = await fetch(medalha.imagem_url)
   const medalhaBlob = await response.blob()
 
   // Gerar PNG do QR Code usando a biblioteca qrcode
@@ -229,26 +243,7 @@ const fecharModalMedalha = () => {
   medalhaCompartilhar.value = null
 }
 
-onMounted(async () => {
-  if (authStore.user) {
-    aluno.value.nome = authStore.user.name || 'Aluno'
-    aluno.value.email = authStore.user.email
-    // Buscar medalhas vinculadas ao aluno
-    const { data, error } = await supabase
-      .from('alunos_medalhas')
-      .select('id, data_conquista, medalhas(id, nome, descricao, criterios, imagem_url)')
-      .eq('aluno_id', authStore.user.id)
-    console.log('Medalhas retornadas:', data, error)
-    if (!error && data) {
-      medalhas.value = data.map((item: any) => ({
-        id: item.id, // id da conquista
-        nome: item.medalhas.nome,
-        descricao: item.medalhas.descricao,
-        criterios: item.medalhas.criterios,
-        imagem: item.medalhas.imagem_url,
-        data_conquista: item.data_conquista
-      }))
-    }
-  }
+onMounted(() => {
+  fetchAlunoEMedalhas()
 })
 </script> 

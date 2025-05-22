@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { supabase } from '@/services/supabase'
+import { getUsers, getMedalhas, vincularMedalhaAluno } from '@/services/database'
 
 const alunos = ref<any[]>([])
 const medalhas = ref<any[]>([])
@@ -61,20 +61,22 @@ const carregando = ref(false)
 
 const buscarAlunos = async () => {
   carregando.value = true
-  let query = supabase.from('users').select('id, nome, email').eq('role', 'aluno')
+  let lista = await getUsers('aluno')
   if (busca.value.trim()) {
-    query = query.ilike('nome', `%${busca.value.trim()}%`).or(`email.ilike.%${busca.value.trim()}%`)
+    const termo = busca.value.trim().toLowerCase()
+    lista = lista.filter(a =>
+      a.nome.toLowerCase().includes(termo) ||
+      a.email.toLowerCase().includes(termo)
+    )
   }
-  const { data } = await query.order('nome')
-  alunos.value = data || []
+  alunos.value = lista
   alunosSelecionados.value = []
   selecionarTodos.value = false
   carregando.value = false
 }
 
 const fetchMedalhas = async () => {
-  const { data } = await supabase.from('medalhas').select('id, nome').order('nome')
-  if (data) medalhas.value = data
+  medalhas.value = await getMedalhas()
 }
 
 const toggleSelecionarTodos = () => {
@@ -91,20 +93,17 @@ watch(alunosSelecionados, (val) => {
 
 const vincularMedalha = async () => {
   if (!alunosSelecionados.value.length || !medalhaSelecionada.value) return
-  const inserts = alunosSelecionados.value.map((alunoId: string) => ({
-    aluno_id: alunoId,
-    medalha_id: medalhaSelecionada.value,
-    data_conquista: new Date().toISOString()
-  }))
-  const { error } = await supabase.from('alunos_medalhas').insert(inserts)
-  if (error) {
-    alert('Erro ao vincular medalha: ' + error.message)
-  } else {
+  try {
+    for (const alunoId of alunosSelecionados.value) {
+      await vincularMedalhaAluno(alunoId, medalhaSelecionada.value)
+    }
     alert('Medalha vinculada com sucesso!')
     alunosSelecionados.value = []
     selecionarTodos.value = false
     medalhaSelecionada.value = ''
     buscarAlunos()
+  } catch (error: any) {
+    alert('Erro ao vincular medalha: ' + (error.message || error))
   }
 }
 
