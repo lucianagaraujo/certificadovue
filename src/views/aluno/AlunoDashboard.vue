@@ -228,7 +228,7 @@ const logout = () => {
   router.push('/login')
 }
 
-const formatarData = (data: string) => {
+const formatarData = (data: string | undefined) => {
   if (!data) return ''
   return new Date(data).toLocaleDateString('pt-BR')
 }
