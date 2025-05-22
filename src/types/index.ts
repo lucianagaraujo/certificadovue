@@ -10,7 +10,9 @@ export interface Medalha {
   id: string;
   nome: string;
   descricao: string;
-  imagem_url?: string;
+  criterios: string;
+  imagem_url: string;
+  data_conquista?: string;
   created_at?: Date;
 }
 

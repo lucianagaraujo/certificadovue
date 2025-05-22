@@ -5,7 +5,7 @@
       <div>
         <label class="block text-sm font-medium text-gray-700">Nome da Medalha</label>
         <input
-          v-model="medalData.name"
+          v-model="medalData.nome"
           type="text"
           required
           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -15,10 +15,21 @@
       <div>
         <label class="block text-sm font-medium text-gray-700">Descrição</label>
         <textarea
-          v-model="medalData.description"
+          v-model="medalData.descricao"
           required
           rows="3"
           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+        ></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Critérios</label>
+        <textarea
+          v-model="medalData.criterios"
+          required
+          rows="3"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          placeholder="Digite os critérios separados por ponto e vírgula (;)"
         ></textarea>
       </div>
 
@@ -30,41 +41,7 @@
           accept="image/*"
           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
         />
-        <img v-if="imageFile || medalData.imagem_url" :src="imageFile ? URL.createObjectURL(imageFile) : medalData.imagem_url" class="mt-2 h-32 w-32 object-cover rounded-lg" />
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Pontos</label>
-        <input
-          v-model.number="medalData.points"
-          type="number"
-          required
-          min="0"
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-        />
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Categoria</label>
-        <select
-          v-model="medalData.category"
-          required
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-        >
-          <option value="academic">Acadêmica</option>
-          <option value="sports">Esportiva</option>
-          <option value="cultural">Cultural</option>
-          <option value="social">Social</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Data de Expiração</label>
-        <input
-          v-model="medalData.expirationDate"
-          type="date"
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-        />
+        <img v-if="imageFile || medalData.imagem_url" :src="imageFile ? getImageUrl(imageFile) : medalData.imagem_url" class="mt-2 h-32 w-32 object-cover rounded-lg" />
       </div>
 
       <div class="flex justify-end">
@@ -84,22 +61,23 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { createMedalha } from '@/services/database';
 import { uploadImage } from '@/services/storage';
+import type { Medalha } from '@/types';
 
 const router = useRouter();
 
-const medalData = ref({
-  name: '',
-  description: '',
+const medalData = ref<Omit<Medalha, 'id'>>({
+  nome: '',
+  descricao: '',
+  criterios: '',
   imagem_url: '',
-  points: 0,
-  category: 'academic',
-  expirationDate: '',
-  criterios: [],
-  created_at: new Date().toISOString(),
-  active: true
+  created_at: new Date()
 });
 
 const imageFile = ref<File | null>(null);
+
+const getImageUrl = (file: File) => {
+  return URL.createObjectURL(file);
+};
 
 const handleImageChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
@@ -120,10 +98,7 @@ const handleSubmit = async () => {
     }
     await createMedalha({
       ...medalData.value,
-      imagem_url: imageUrl,
-      created_at: new Date(),
-      criterios: Array.isArray(medalData.value.criterios) ? medalData.value.criterios : [],
-      points: Number(medalData.value.points)
+      imagem_url: imageUrl
     });
     alert('Medalha criada com sucesso!');
     router.push('/admin/medalhas');
