@@ -131,7 +131,7 @@ interface Medalha {
   descricao: string
   criterios: string
   imagem_url: string
-  data_conquista: string
+  data_conquista?: string
 }
 
 const router = useRouter()
