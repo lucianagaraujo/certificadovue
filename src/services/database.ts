@@ -123,11 +123,11 @@ export const importarAlunos = async (alunos: Omit<User, 'id'>[]): Promise<void> 
 };
 
 // Função para buscar conquistas do aluno, trazendo os dados completos da medalha
-export const getConquistasAluno = async (alunoId: string) => {
+export const getConquistasAluno = async (alunoId: string): Promise<Medalha[]> => {
   const conquistasRef = collection(db, 'alunos_medalhas');
   const q = query(conquistasRef, where('aluno_id', '==', alunoId));
   const querySnapshot = await getDocs(q);
-  const conquistas = [];
+  const conquistas: Medalha[] = [];
   for (const docSnap of querySnapshot.docs) {
     const data = docSnap.data();
     const medalhaRef = doc(db, 'medalhas', data.medalha_id);
@@ -137,7 +137,7 @@ export const getConquistasAluno = async (alunoId: string) => {
         id: docSnap.id,
         ...medalhaDoc.data(),
         data_conquista: data.data_vincular
-      });
+      } as Medalha);
     }
   }
   return conquistas;

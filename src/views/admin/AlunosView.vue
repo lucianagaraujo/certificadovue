@@ -143,20 +143,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { getUsers, getMedalhasAluno, getConquistasAluno } from '@/services/database'
+import type { User, Medalha } from '@/types'
 
-interface Medalha {
-  id: string
-  nome: string
-  descricao?: string
-  criterios?: string
-  imagem_url?: string
-  data_conquista?: string
-}
-
-interface Aluno {
-  id: string
-  nome: string
-  email: string
+interface Aluno extends User {
   medalhas: Medalha[]
 }
 
@@ -181,7 +170,7 @@ const buscarAlunos = async () => {
       lista = lista.filter(a => a.nome.toLowerCase().includes(termo) || a.email.toLowerCase().includes(termo))
     }
   }
-  alunos.value = await Promise.all(lista.map(async (a: any) => ({
+  alunos.value = await Promise.all(lista.map(async (a) => ({
     ...a,
     medalhas: await getMedalhasAluno(a.id)
   })))
@@ -193,7 +182,7 @@ const exibirTodos = async () => {
     searchQuery.value = ''
     carregando.value = true
     const lista = await getUsers('aluno')
-    alunos.value = await Promise.all(lista.map(async (a: any) => ({
+    alunos.value = await Promise.all(lista.map(async (a) => ({
       ...a,
       medalhas: await getMedalhasAluno(a.id)
     })))
