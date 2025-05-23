@@ -8,6 +8,12 @@
         <p class="text-red-600 font-bold">{{ erro }}</p>
       </template>
       <template v-else>
+        <!-- Selo de válido -->
+        <div class="flex justify-center mb-2">
+          <span class="inline-block bg-green-100 text-green-700 text-sm font-semibold px-4 py-1 rounded-full border border-green-300 shadow-sm">
+            Válido
+          </span>
+        </div>
         <h2 class="text-2xl font-bold mb-4">Validação de Medalha</h2>
         <div class="mb-4">
           <b>Aluno:</b> {{ medalhaAluno?.aluno_nome }}<br>
