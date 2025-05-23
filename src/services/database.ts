@@ -8,7 +8,8 @@ import {
   deleteDoc, 
   doc, 
   orderBy,
-  getDoc
+  getDoc,
+  Timestamp
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { User, Medalha, AlunoMedalha } from '@/types';
@@ -74,17 +75,18 @@ export const deleteMedalha = async (id: string): Promise<void> => {
 // Funções para alunos_medalhas
 export const vincularMedalhaAluno = async (alunoId: string, medalhaId: string): Promise<AlunoMedalha> => {
   const alunosMedalhasRef = collection(db, 'alunos_medalhas');
+  const now = Timestamp.now();
   const docRef = await addDoc(alunosMedalhasRef, {
     aluno_id: alunoId,
     medalha_id: medalhaId,
-    data_vincular: new Date()
+    data_conquista: now
   });
   
   return {
     id: docRef.id,
     aluno_id: alunoId,
     medalha_id: medalhaId,
-    data_vincular: new Date()
+    data_conquista: now
   };
 };
 
@@ -136,7 +138,7 @@ export const getConquistasAluno = async (alunoId: string): Promise<Medalha[]> =>
       conquistas.push({
         id: docSnap.id,
         ...medalhaDoc.data(),
-        data_conquista: data.data_vincular
+        data_conquista: data.data_conquista
       } as Medalha);
     }
   }

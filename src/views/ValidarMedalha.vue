@@ -23,6 +23,15 @@
           <p class="mt-2"><b>Data da conquista:</b> {{ formatarData(medalhaAluno?.data_conquista) }}</p>
           <p><b>Código de validação:</b> {{ medalhaAluno?.id }}</p>
         </div>
+
+        <!-- Bloco da empresa certificadora -->
+        <div class="mt-6 flex flex-col items-center text-center">
+          <img src="https://firebasestorage.googleapis.com/v0/b/portal-a8f73.firebasestorage.app/o/logoippla.png?alt=media&token=f6fa42e9-149d-4c28-87f6-eb984a745717" alt="Logo IPPLA" class="h-20 w-20 object-contain mb-2 drop-shadow" style="border-radius: 50%; background: #fff; border: 2px solid #e5e7eb;" />
+          <b class="text-lg mt-2">Empresa certificadora: IPPLA - Instituto de Psicologia e Planejamento Financeiro</b>
+          <p class="mt-2 text-gray-700 max-w-xl">
+            O IPPLA é referência no Brasil na integração de abordagens da psicologia clínica, psicologia do planejamento financeiro e finanças comportamentais à prática de planejamento financeiro, educação financeira e consultoria financeira.
+          </p>
+        </div>
       </template>
     </div>
   </div>
@@ -43,8 +52,11 @@ const criteriosArray = computed(() => {
   return medalhaAluno.value.criterios.split(';').map((c: string) => c.trim()).filter(Boolean)
 })
 
-const formatarData = (data: string) => {
+const formatarData = (data: any) => {
   if (!data) return ''
+  if (typeof data === 'object' && data.seconds) {
+    return new Date(data.seconds * 1000).toLocaleDateString('pt-BR')
+  }
   return new Date(data).toLocaleDateString('pt-BR')
 }
 
@@ -80,7 +92,7 @@ onMounted(async () => {
   const medalha = medalhaSnap.data();
   medalhaAluno.value = {
     id: vinculoSnap.id,
-    data_conquista: vinculo.data_conquista || vinculo.data_vincular,
+    data_conquista: vinculo.data_conquista,
     aluno_nome: aluno.nome,
     aluno_email: aluno.email,
     nome: medalha.nome,

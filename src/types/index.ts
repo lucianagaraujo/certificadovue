@@ -20,5 +20,5 @@ export interface AlunoMedalha {
   id: string;
   aluno_id: string;
   medalha_id: string;
-  data_vincular: Date;
+  data_conquista: any; // Aceita Timestamp ou Date
 } 

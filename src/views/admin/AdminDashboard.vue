@@ -38,10 +38,35 @@
                   class="mt-1 block w-full"
                 />
               </div>
+              <div class="flex items-center">
+                <input
+                  type="checkbox"
+                  id="createAuthUsers"
+                  v-model="createAuthUsers"
+                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label for="createAuthUsers" class="ml-2 block text-sm text-gray-900">
+                  Criar usuários no Firebase Authentication
+                </label>
+              </div>
+              <div v-if="createAuthUsers" class="mt-2">
+                <label class="block text-sm font-medium text-gray-700">
+                  Senha inicial padrão
+                </label>
+                <input
+                  type="text"
+                  v-model="senhaPadrao"
+                  placeholder="Digite a senha inicial padrão"
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+                <p class="mt-1 text-sm text-gray-500">
+                  Esta será a senha inicial para todos os alunos. Eles poderão alterá-la no primeiro acesso.
+                </p>
+              </div>
               <button
                 @click="uploadAlunos"
                 class="btn-primary"
-                :disabled="!selectedFile"
+                :disabled="!selectedFile || (createAuthUsers && !senhaPadrao)"
               >
                 Enviar Arquivo
               </button>
@@ -107,10 +132,13 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import Papa from 'papaparse'
 import { importarAlunos } from '@/services/database'
+import { createUserWithEmailAndPassword } from '@/services/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const selectedFile = ref<File | null>(null)
+const createAuthUsers = ref(false)
+const senhaPadrao = ref('')
 const novoAluno = ref({ nome: '', email: '' })
 
 const handleFileUpload = (event: Event) => {
@@ -122,6 +150,10 @@ const handleFileUpload = (event: Event) => {
 
 const uploadAlunos = async () => {
   if (!selectedFile.value) return
+  if (createAuthUsers.value && !senhaPadrao.value) {
+    alert('Por favor, defina uma senha inicial padrão.')
+    return
+  }
 
   Papa.parse(selectedFile.value, {
     header: false,
@@ -142,8 +174,36 @@ const uploadAlunos = async () => {
       }
 
       try {
+        // Primeiro importa os alunos no Firestore
         await importarAlunos(alunos)
+        
+        // Se a opção de criar usuários no Auth estiver marcada
+        if (createAuthUsers.value) {
+          const emailsProcessados: string[] = []
+          
+          for (const aluno of alunos) {
+            const { error } = await createUserWithEmailAndPassword(aluno.email, senhaPadrao.value)
+            if (error) {
+              console.error(`Erro ao criar usuário ${aluno.email}:`, error)
+            } else {
+              emailsProcessados.push(aluno.email)
+            }
+          }
+
+          // Exporta a lista de emails para um arquivo CSV
+          if (emailsProcessados.length > 0) {
+            const csv = Papa.unparse(emailsProcessados.map(email => ({ email })))
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+            const link = document.createElement('a')
+            link.href = URL.createObjectURL(blob)
+            link.download = 'emails_alunos.csv'
+            link.click()
+          }
+
+          alert(`Alunos importados com sucesso!\n\n${emailsProcessados.length} alunos foram cadastrados com a senha inicial: ${senhaPadrao.value}\n\nUm arquivo com os emails foi baixado automaticamente.`)
+        } else {
         alert('Alunos importados com sucesso!')
+        }
       } catch (error: any) {
         alert('Erro ao importar alunos: ' + (error.message || error))
       }
@@ -173,3 +233,9 @@ const logout = () => {
 // Declaração de tipos para papaparse 
 
 console.log('Medalhas encontradas:', medalhasAluno); 
+
+const formatarData = (data) => {
+  if (!data) return ''
+  const d = typeof data === 'string' ? new Date(data) : data
+  return d.toLocaleDateString('pt-BR')
+} 

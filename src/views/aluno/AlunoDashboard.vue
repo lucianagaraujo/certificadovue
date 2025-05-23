@@ -179,20 +179,37 @@ const fetchAlunoEMedalhas = async () => {
 }
 
 const baixarCertificado = async (medalha: Medalha) => {
-  // Baixar imagem da medalha
-  const response = await fetch(medalha.imagem_url)
-  const medalhaBlob = await response.blob()
-
-  // Gerar PNG do QR Code usando a biblioteca qrcode
-  const qrUrl = await QRCode.toDataURL(`${urlBase}/validar/${medalha.id}`, { width: 300 })
-  const qrBlob = await (await fetch(qrUrl)).blob()
-
-  // Criar ZIP
-  const zip = new JSZip()
-  zip.file(`medalha-${medalha.nome}.png`, medalhaBlob)
-  zip.file(`qrcode-${medalha.nome}.png`, qrBlob)
-  const zipBlob = await zip.generateAsync({ type: 'blob' })
-  saveAs(zipBlob, `certificado-${medalha.nome}.zip`)
+  try {
+    const zip = new JSZip();
+    // Gerar QR Code
+    const qrUrl = await QRCode.toDataURL(`${urlBase}/validar/${medalha.id}`, { width: 300 });
+    const qrBlob = await (await fetch(qrUrl)).blob();
+    zip.file(`qrcode-${medalha.nome}.png`, qrBlob);
+    // Tentar baixar a imagem da medalha
+    let medalhaBaixada = false;
+    try {
+      const response = await fetch(medalha.imagem_url, { mode: 'cors' });
+      if (response.ok) {
+        const medalhaBlob = await response.blob();
+        zip.file(`medalha-${medalha.nome}.png`, medalhaBlob);
+        medalhaBaixada = true;
+      }
+    } catch (e) {
+      // Não faz nada, só não inclui a imagem
+    }
+    // Adicionar arquivo de informações
+    const info = `Medalha: ${medalha.nome}\nDescrição: ${medalha.descricao}\nData da conquista: ${formatarData(medalha.data_conquista)}\nCódigo: ${medalha.id}`;
+    zip.file('informacoes.txt', info);
+    // Gerar e baixar o ZIP
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    saveAs(zipBlob, `certificado-${medalha.nome}.zip`);
+    if (!medalhaBaixada) {
+      alert('A imagem da medalha não pôde ser baixada devido a restrições do servidor. O arquivo contém apenas o QR code e as informações.');
+    }
+  } catch (error) {
+    alert('Erro ao baixar o certificado. Tente novamente.');
+    console.error(error);
+  }
 }
 
 const abrirOpcoesCompartilhar = (medalha: Medalha) => {
@@ -228,8 +245,11 @@ const logout = () => {
   router.push('/login')
 }
 
-const formatarData = (data: string | undefined) => {
+const formatarData = (data: any) => {
   if (!data) return ''
+  if (typeof data === 'object' && data.seconds) {
+    return new Date(data.seconds * 1000).toLocaleDateString('pt-BR')
+  }
   return new Date(data).toLocaleDateString('pt-BR')
 }
 

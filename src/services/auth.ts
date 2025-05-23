@@ -1,6 +1,7 @@
 import { 
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
+  createUserWithEmailAndPassword as firebaseCreateUser,
   type User as FirebaseUser
 } from 'firebase/auth';
 import { auth } from './firebase';
@@ -46,5 +47,20 @@ export const signOut = async (): Promise<{ error: Error | null }> => {
     return { error: null };
   } catch (error) {
     return { error: error as Error };
+  }
+};
+
+export const createUserWithEmailAndPassword = async (email: string, password: string): Promise<{ user: FirebaseUser | null; error: Error | null }> => {
+  try {
+    const userCredential = await firebaseCreateUser(auth, email, password);
+    return {
+      user: userCredential.user,
+      error: null
+    };
+  } catch (error) {
+    return {
+      user: null,
+      error: error as Error
+    };
   }
 }; 
