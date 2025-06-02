@@ -184,40 +184,19 @@ const baixarCertificado = async (medalha: Medalha) => {
     // Tentar baixar a imagem da medalha
     let medalhaBaixada = false;
     try {
-      // Primeiro, vamos tentar converter a URL do Firebase em uma URL direta
-      const imageUrl = medalha.imagem_url.replace('firebasestorage.googleapis.com', 'firebasestorage.googleapis.com/v0/b/portal-a8f73.appspot.com/o');
+      const response = await fetch(medalha.imagem_url, {
+        mode: 'cors',
+        headers: {
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
       
-      const response = await fetch(imageUrl);
       if (response.ok) {
         const medalhaBlob = await response.blob();
         zip.file(`medalha-${medalha.nome}.png`, medalhaBlob);
         medalhaBaixada = true;
       } else {
         console.error('Erro ao baixar imagem:', response.status, response.statusText);
-        // Tentar método alternativo
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = medalha.imagem_url;
-        
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-        });
-        
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0);
-        
-        const blob = await new Promise<Blob>((resolve) => {
-          canvas.toBlob((blob) => {
-            if (blob) resolve(blob);
-          }, 'image/png');
-        });
-        
-        zip.file(`medalha-${medalha.nome}.png`, blob);
-        medalhaBaixada = true;
       }
     } catch (e) {
       console.error('Erro ao baixar imagem:', e);
