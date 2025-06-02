@@ -176,34 +176,60 @@ const fetchAlunoEMedalhas = async () => {
 const baixarCertificado = async (medalha: Medalha) => {
   try {
     const zip = new JSZip();
+    
     // Gerar QR Code
     const qrUrl = await QRCode.toDataURL(`${urlBase}/validar/${medalha.id}`, { width: 300 });
     const qrBlob = await (await fetch(qrUrl)).blob();
     zip.file(`qrcode-${medalha.nome}.png`, qrBlob);
-    // Tentar baixar a imagem da medalha
+
+    // Tentar baixar a imagem da medalha com tratamento de CORS
     let medalhaBaixada = false;
     try {
-      const response = await fetch(medalha.imagem_url, { mode: 'cors' });
+      // Primeiro tenta baixar diretamente
+      const response = await fetch(medalha.imagem_url, {
+        mode: 'cors',
+        headers: {
+          'Accept': 'image/*'
+        }
+      });
+
       if (response.ok) {
         const medalhaBlob = await response.blob();
         zip.file(`medalha-${medalha.nome}.png`, medalhaBlob);
         medalhaBaixada = true;
+      } else {
+        // Se falhar, tenta usar um proxy CORS
+        const proxyUrl = `https://cors-anywhere.herokuapp.com/${medalha.imagem_url}`;
+        const proxyResponse = await fetch(proxyUrl, {
+          headers: {
+            'Origin': window.location.origin
+          }
+        });
+        
+        if (proxyResponse.ok) {
+          const medalhaBlob = await proxyResponse.blob();
+          zip.file(`medalha-${medalha.nome}.png`, medalhaBlob);
+          medalhaBaixada = true;
+        }
       }
     } catch (e) {
-      // Não faz nada, só não inclui a imagem
+      console.error('Erro ao baixar imagem da medalha:', e);
     }
+
     // Adicionar arquivo de informações
     const info = `Medalha: ${medalha.nome}\nDescrição: ${medalha.descricao}\nData da conquista: ${formatarData(medalha.data_conquista)}\nCódigo: ${medalha.id}`;
     zip.file('informacoes.txt', info);
+
     // Gerar e baixar o ZIP
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     saveAs(zipBlob, `certificado-${medalha.nome}.zip`);
+
     if (!medalhaBaixada) {
-      alert('A imagem da medalha não pôde ser baixada devido a restrições do servidor. O arquivo contém apenas o QR code e as informações.');
+      alert('A imagem da medalha não pôde ser baixada. O arquivo contém apenas o QR code e as informações.');
     }
   } catch (error) {
-    alert('Erro ao baixar o certificado. Tente novamente.');
-    console.error(error);
+    console.error('Erro ao baixar o certificado:', error);
+    alert('Erro ao baixar o certificado. Por favor, tente novamente.');
   }
 }
 
