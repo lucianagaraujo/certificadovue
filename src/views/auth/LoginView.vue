@@ -52,6 +52,9 @@ import { signIn } from '@/services/auth'
 import { useAuthStore } from '@/stores/auth'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '@/services/firebase'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { getDoc, doc } from 'firebase/firestore'
+import { db } from '@/services/firebase'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -63,22 +66,23 @@ const loading = ref(false)
 const handleLogin = async () => {
   loading.value = true
   try {
-    const { user, error } = await signIn(email.value, password.value)
-    if (error || !user) {
-      alert('Aluno não encontrado ou senha incorreta!')
-      return
-    }
-    if (user.role !== 'aluno') {
-      alert('Acesso restrito a alunos!')
-      return
-    }
-    authStore.user = {
-      id: user.id,
-      email: user.email || '',
-      name: user.nome || '',
-      role: user.role || 'aluno'
+    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value)
+    const user = userCredential.user
+    
+    // Buscar dados adicionais do usuário no Firestore
+    const userDoc = await getDoc(doc(db, 'users', user.uid))
+    if (userDoc.exists()) {
+      const userData = userDoc.data()
+      authStore.user = {
+        id: user.uid,
+        nome: userData.nome,
+        email: user.email || '',
+        role: userData.role
+      }
     }
     router.push('/aluno')
+  } catch (error: any) {
+    alert('Erro ao fazer login: ' + (error.message || error))
   } finally {
     loading.value = false
   }
