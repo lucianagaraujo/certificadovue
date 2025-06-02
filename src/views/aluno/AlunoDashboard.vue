@@ -114,25 +114,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getConquistasAluno } from '@/services/database'
-import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'
+import { getFirestore, collection, query, where, getDocs, onSnapshot, doc, getDoc } from 'firebase/firestore'
+import type { DocumentData } from 'firebase/firestore'
 import QrcodeVue from 'qrcode.vue'
 import JSZip from 'jszip'
-import { saveAs } from 'file-saver'
 import QRCode from 'qrcode'
+import { saveAs } from 'file-saver'
 import Certificado from '@/components/Certificado.vue'
-
-interface Medalha {
-  id: string
-  nome: string
-  descricao: string
-  criterios: string
-  imagem_url: string
-  data_conquista?: string
-}
+import type { Medalha } from '@/types'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -157,13 +150,15 @@ const userInitials = computed(() => {
     .toUpperCase()
 })
 
+const db = getFirestore()
+let unsubscribeMedalhas: (() => void) | null = null
+
 const fetchAlunoEMedalhas = async () => {
   if (!authStore.user) return
   aluno.value = {
     nome: authStore.user.name,
     email: authStore.user.email
   }
-  const db = getFirestore();
   const usersRef = collection(db, 'users');
   const q = query(usersRef, where('email', '==', authStore.user.email));
   const querySnapshot = await getDocs(q);
@@ -242,7 +237,7 @@ const copiarLink = (medalha: Medalha) => {
 
 const logout = () => {
   authStore.logout()
-  router.push('/login')
+  router.push('/')
 }
 
 const formatarData = (data: any) => {
@@ -264,6 +259,51 @@ const fecharModalMedalha = () => {
 }
 
 onMounted(() => {
+  if (!authStore.user) {
+    router.push('/login')
+    return
+  }
+  
+  if (authStore.user.role !== 'aluno') {
+    router.push('/admin')
+    return
+  }
+  
   fetchAlunoEMedalhas()
+  // Configurar listener em tempo real para as medalhas do aluno
+  if (authStore.user?.id) {
+    const medalhasRef = collection(db, 'alunos_medalhas')
+    const q = query(medalhasRef, where('aluno_id', '==', authStore.user.id))
+    
+    unsubscribeMedalhas = onSnapshot(q, async (snapshot) => {
+      const medalhasPromises = snapshot.docs.map(async (docSnapshot) => {
+        const vinculo = docSnapshot.data()
+        const medalhaRef = doc(db, 'medalhas', vinculo.medalha_id)
+        const medalhaSnap = await getDoc(medalhaRef)
+        
+        if (!medalhaSnap.exists()) return null
+        
+        const medalhaData = medalhaSnap.data() as DocumentData
+        return {
+          id: docSnapshot.id,
+          nome: medalhaData.nome as string,
+          descricao: medalhaData.descricao as string,
+          criterios: medalhaData.criterios as string,
+          imagem_url: medalhaData.imagem_url as string,
+          data_conquista: vinculo.data_conquista
+        } as Medalha
+      })
+      
+      const medalhasResult = await Promise.all(medalhasPromises)
+      medalhas.value = medalhasResult.filter((m): m is Medalha => m !== null)
+    })
+  }
+})
+
+onUnmounted(() => {
+  // Limpar listener quando o componente for desmontado
+  if (unsubscribeMedalhas) {
+    unsubscribeMedalhas()
+  }
 })
 </script> 

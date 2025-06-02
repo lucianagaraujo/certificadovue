@@ -44,9 +44,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { getFirestore, doc, getDoc } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, onSnapshot } from 'firebase/firestore'
 
 const route = useRoute()
 const carregando = ref(true)
@@ -66,6 +66,10 @@ const formatarData = (data: any) => {
   return new Date(data).toLocaleDateString('pt-BR')
 }
 
+const db = getFirestore()
+let unsubscribeVinculo: (() => void) | null = null
+let unsubscribeMedalha: (() => void) | null = null
+
 onMounted(async () => {
   const id = route.params.id
   if (!id) {
@@ -73,39 +77,68 @@ onMounted(async () => {
     carregando.value = false
     return
   }
-  const db = getFirestore();
+
   // Buscar o vínculo em alunos_medalhas
-  const vinculoRef = doc(db, 'alunos_medalhas', String(id));
-  const vinculoSnap = await getDoc(vinculoRef);
+  const vinculoRef = doc(db, 'alunos_medalhas', String(id))
+  const vinculoSnap = await getDoc(vinculoRef)
+  
   if (!vinculoSnap.exists()) {
-    erro.value = 'Medalha não encontrada ou código inválido.';
-    carregando.value = false;
-    return;
+    erro.value = 'Medalha não encontrada ou código inválido.'
+    carregando.value = false
+    return
   }
-  const vinculo = vinculoSnap.data();
-  // Buscar o aluno
-  const alunoRef = doc(db, 'users', vinculo.aluno_id);
-  const alunoSnap = await getDoc(alunoRef);
-  // Buscar a medalha
-  const medalhaRef = doc(db, 'medalhas', vinculo.medalha_id);
-  const medalhaSnap = await getDoc(medalhaRef);
-  if (!alunoSnap.exists() || !medalhaSnap.exists()) {
-    erro.value = 'Dados do aluno ou medalha não encontrados.';
-    carregando.value = false;
-    return;
+
+  const vinculo = vinculoSnap.data()
+  
+  // Configurar listeners em tempo real
+  unsubscribeVinculo = onSnapshot(vinculoRef, async (snapshot) => {
+    if (!snapshot.exists()) {
+      erro.value = 'Medalha não encontrada ou código inválido.'
+      carregando.value = false
+      return
+    }
+
+    const vinculo = snapshot.data()
+    
+    // Buscar o aluno
+    const alunoRef = doc(db, 'users', vinculo.aluno_id)
+    const alunoSnap = await getDoc(alunoRef)
+    
+    // Buscar a medalha
+    const medalhaRef = doc(db, 'medalhas', vinculo.medalha_id)
+    unsubscribeMedalha = onSnapshot(medalhaRef, (medalhaSnap) => {
+      if (!alunoSnap.exists() || !medalhaSnap.exists()) {
+        erro.value = 'Dados do aluno ou medalha não encontrados.'
+        carregando.value = false
+        return
+      }
+
+      const aluno = alunoSnap.data()
+      const medalha = medalhaSnap.data()
+      
+      medalhaAluno.value = {
+        id: snapshot.id,
+        data_conquista: vinculo.data_conquista,
+        aluno_nome: aluno.nome,
+        aluno_email: aluno.email,
+        nome: medalha.nome,
+        descricao: medalha.descricao,
+        criterios: medalha.criterios,
+        imagem: medalha.imagem_url
+      }
+      
+      carregando.value = false
+    })
+  })
+})
+
+onUnmounted(() => {
+  // Limpar listeners quando o componente for desmontado
+  if (unsubscribeVinculo) {
+    unsubscribeVinculo()
   }
-  const aluno = alunoSnap.data();
-  const medalha = medalhaSnap.data();
-  medalhaAluno.value = {
-    id: vinculoSnap.id,
-    data_conquista: vinculo.data_conquista,
-    aluno_nome: aluno.nome,
-    aluno_email: aluno.email,
-    nome: medalha.nome,
-    descricao: medalha.descricao,
-    criterios: medalha.criterios,
-    imagem: medalha.imagem_url
-  };
-  carregando.value = false;
+  if (unsubscribeMedalha) {
+    unsubscribeMedalha()
+  }
 })
 </script> 

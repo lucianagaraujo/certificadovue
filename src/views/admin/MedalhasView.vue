@@ -167,8 +167,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { getMedalhas, createMedalha, deleteMedalha } from '@/services/database'
+import { getFirestore, doc, updateDoc, collection, onSnapshot } from 'firebase/firestore'
 
 interface Medalha {
   id: string
@@ -225,8 +226,25 @@ const fetchMedalhas = async () => {
   medalhas.value = await getMedalhas()
 }
 
+const db = getFirestore()
+let unsubscribeMedalhas: (() => void) | null = null
+
 onMounted(() => {
-  fetchMedalhas()
+  // Configurar listener em tempo real
+  const medalhasRef = collection(db, 'medalhas')
+  unsubscribeMedalhas = onSnapshot(medalhasRef, (snapshot) => {
+    medalhas.value = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Medalha[]
+  })
+})
+
+onUnmounted(() => {
+  // Limpar listener quando o componente for desmontado
+  if (unsubscribeMedalhas) {
+    unsubscribeMedalhas()
+  }
 })
 
 const modalEditarAberto = ref(false)
@@ -249,15 +267,24 @@ const salvarEdicaoMedalha = async () => {
   loading.value = true
   try {
     const criteriosStr = criteriosEdicao.value.split('\n').map(c => c.trim()).filter(Boolean).join(';')
-    await createMedalha({
+    const medalhaAtualizada = {
       nome: medalhaEditando.value.nome,
       descricao: medalhaEditando.value.descricao,
       criterios: criteriosStr,
       imagem_url: medalhaEditando.value.imagem_url
-    })
+    }
+    
+    // Atualizar no Firestore
+    const db = getFirestore()
+    const medalhaRef = doc(db, 'medalhas', medalhaEditando.value.id)
+    await updateDoc(medalhaRef, medalhaAtualizada)
+    
     alert('Medalha atualizada com sucesso!')
     fetchMedalhas()
     fecharModalEditar()
+  } catch (error) {
+    console.error('Erro ao atualizar medalha:', error)
+    alert('Erro ao atualizar medalha. Por favor, tente novamente.')
   } finally {
     loading.value = false
   }

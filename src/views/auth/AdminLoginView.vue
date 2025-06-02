@@ -22,8 +22,10 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { signIn, signOut } from '@/services/auth'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
@@ -39,7 +41,16 @@ async function handleLogin() {
       await signOut()
       throw new Error('Acesso restrito ao administrador.')
     }
-    router.push('/home')
+    
+    // Atualizar o estado do usuário no store
+    authStore.user = {
+      id: user.id,
+      email: user.email || '',
+      nome: user.nome || '',
+      role: user.role
+    }
+    
+    router.push('/admin')
   } catch (e: any) {
     error.value = e.message || 'Erro ao fazer login'
   } finally {
