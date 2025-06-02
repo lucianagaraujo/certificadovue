@@ -73,10 +73,10 @@ const handleLogin = async () => {
       return
     }
     authStore.user = {
-      id: user.uid,
-      nome: user.nome || '',
+      id: user.id,
       email: user.email || '',
-      role: 'aluno'
+      name: user.nome || '',
+      role: user.role || 'aluno'
     }
     router.push('/aluno')
   } finally {

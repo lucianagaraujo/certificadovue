@@ -156,7 +156,7 @@ let unsubscribeMedalhas: (() => void) | null = null
 const fetchAlunoEMedalhas = async () => {
   if (!authStore.user) return
   aluno.value = {
-    nome: authStore.user.nome,
+    nome: authStore.user.name,
     email: authStore.user.email
   }
   const usersRef = collection(db, 'users');
@@ -180,42 +180,30 @@ const baixarCertificado = async (medalha: Medalha) => {
     const qrUrl = await QRCode.toDataURL(`${urlBase}/validar/${medalha.id}`, { width: 300 });
     const qrBlob = await (await fetch(qrUrl)).blob();
     zip.file(`qrcode-${medalha.nome}.png`, qrBlob);
-    
     // Tentar baixar a imagem da medalha
     let medalhaBaixada = false;
     try {
-      const response = await fetch(medalha.imagem_url, {
-        mode: 'cors',
-        headers: {
-          'Access-Control-Allow-Origin': '*'
-        }
-      });
-      
+      const response = await fetch(medalha.imagem_url, { mode: 'cors' });
       if (response.ok) {
         const medalhaBlob = await response.blob();
         zip.file(`medalha-${medalha.nome}.png`, medalhaBlob);
         medalhaBaixada = true;
-      } else {
-        console.error('Erro ao baixar imagem:', response.status, response.statusText);
       }
     } catch (e) {
-      console.error('Erro ao baixar imagem:', e);
+      // Não faz nada, só não inclui a imagem
     }
-    
     // Adicionar arquivo de informações
     const info = `Medalha: ${medalha.nome}\nDescrição: ${medalha.descricao}\nData da conquista: ${formatarData(medalha.data_conquista)}\nCódigo: ${medalha.id}`;
     zip.file('informacoes.txt', info);
-    
     // Gerar e baixar o ZIP
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     saveAs(zipBlob, `certificado-${medalha.nome}.zip`);
-    
     if (!medalhaBaixada) {
       alert('A imagem da medalha não pôde ser baixada devido a restrições do servidor. O arquivo contém apenas o QR code e as informações.');
     }
   } catch (error) {
-    console.error('Erro ao baixar certificado:', error);
     alert('Erro ao baixar o certificado. Tente novamente.');
+    console.error(error);
   }
 }
 
@@ -249,7 +237,7 @@ const copiarLink = (medalha: Medalha) => {
 
 const logout = () => {
   authStore.logout()
-  router.push('/')
+  router.push('/login')
 }
 
 const formatarData = (data: any) => {

@@ -224,7 +224,7 @@ const cadastrarAluno = async () => {
 
 const logout = () => {
   authStore.logout()
-  router.push('/')
+  router.push('/login')
 }
 </script> 
 

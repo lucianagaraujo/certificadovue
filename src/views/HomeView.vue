@@ -9,7 +9,7 @@
             Sistema de Certificados Digitais
           </h1>
           <p class="mt-4 text-lg text-gray-600 text-center max-w-2xl">
-            Gerencie e compartilhe suas conquistas de forma segura e moderna
+            Gerencie e compartilhe suas conquistas acadêmicas de forma segura e moderna
           </p>
         </div>
       </div>
