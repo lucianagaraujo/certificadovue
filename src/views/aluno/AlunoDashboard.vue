@@ -156,7 +156,7 @@ let unsubscribeMedalhas: (() => void) | null = null
 const fetchAlunoEMedalhas = async () => {
   if (!authStore.user) return
   aluno.value = {
-    nome: authStore.user.name,
+    nome: authStore.user.nome,
     email: authStore.user.email
   }
   const usersRef = collection(db, 'users');
