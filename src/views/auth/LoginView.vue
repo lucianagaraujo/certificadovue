@@ -66,23 +66,29 @@ const loading = ref(false)
 const handleLogin = async () => {
   loading.value = true
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value)
-    const user = userCredential.user
+    const { user, error } = await signIn(email.value, password.value)
     
-    // Buscar dados adicionais do usuário no Firestore
-    const userDoc = await getDoc(doc(db, 'users', user.uid))
-    if (userDoc.exists()) {
-      const userData = userDoc.data()
-      authStore.user = {
-        id: user.uid,
-        nome: userData.nome,
-        email: user.email || '',
-        role: userData.role
-      }
+    if (error || !user) {
+      throw new Error('Email ou senha incorretos')
     }
+
+    if (user.role !== 'aluno') {
+      throw new Error('Acesso restrito a alunos')
+    }
+
+    // Atualizar o store com os dados do usuário
+    authStore.user = {
+      id: user.id,
+      nome: user.nome,
+      email: user.email || '',
+      role: user.role
+    }
+
+    // Redirecionar para a página do aluno
     router.push('/aluno')
   } catch (error: any) {
-    alert('Erro ao fazer login: ' + (error.message || error))
+    console.error('Erro no login:', error)
+    alert(error.message || 'Erro ao fazer login')
   } finally {
     loading.value = false
   }

@@ -9,7 +9,7 @@ import { getUsers } from './database';
 import type { User } from '@/types';
 
 interface AuthResponse {
-  user: (User & FirebaseUser) | null;
+  user: User | null;
   error: Error | null;
 }
 
@@ -27,13 +27,11 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
     }
     
     return {
-      user: {
-        ...firebaseUser,
-        ...userData
-      },
+      user: userData,
       error: null
     };
   } catch (error) {
+    console.error('Erro no login:', error);
     return {
       user: null,
       error: error as Error
